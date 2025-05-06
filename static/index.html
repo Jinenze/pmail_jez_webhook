@@ -1,0 +1,119 @@
+<html>
+<head>
+    <style>
+        body {
+            margin: 0;
+            padding-bottom: 80px;
+        }
+        .button-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+        }
+        .config-container {
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="config-container" class="config-container">
+        %s
+    </div>
+    <div class="button-container">
+        <button id="add-config">Add</button>
+        <button id="save-all">Save</button>
+        <div>
+            <label for="allow-retry">Allow Retry:</label>
+            <input type="checkbox" id="allow-retry" %s>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const configContainer = document.getElementById('config-container');
+            const addConfigBtn = document.getElementById('add-config');
+            const saveAllBtn = document.getElementById('save-all');
+
+            addConfigBtn.addEventListener('click', function() {
+                addConfigPanel();
+            });
+
+            saveAllBtn.addEventListener('click', function() {
+                saveAllConfigs();
+            });
+
+            function addConfigPanel() {
+                const panelId = Date.now();
+                const panel = document.createElement('div');
+                panel.className = 'config-panel';
+                panel.dataset.id = panelId;
+
+                panel.innerHTML = `
+                    <div class="form-group">
+                        <label for="address-${panelId}">Address:</label>
+                        <input type="text" id="address-${panelId}" placeholder="https://example.com:12345">
+                    </div>
+                    <div class="form-group">
+                        <label for="port-${panelId}">Max Retries:</label>
+                        <input type="number" id="max-retries-${panelId}" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="https-${panelId}">Unlimited Retries:</label>
+                        <input type="checkbox" id="infinite-retry-${panelId}">
+                    </div>
+                    <div class="form-group">
+                        <label for="enabled-${panelId}">Enabled:</label>
+                        <input type="checkbox" id="enabled-${panelId}">
+                    </div>
+                    <button class="remove-btn" onclick="removeConfigPanel('${panelId}')">Delete</button>
+                `;
+
+                configContainer.appendChild(panel);
+            }
+
+            window.removeConfigPanel = function(panelId) {
+                const panel = document.querySelector(`.config-panel[data-id="${panelId}"]`);
+                if (panel) {
+                    panel.remove();
+                }
+            }
+
+            function saveAllConfigs() {
+                const panels = document.querySelectorAll('.config-panel');
+                const configs = {"panels":[], "allow-retry":false};
+
+                panels.forEach(panel => {
+                    const panelId = panel.dataset.id;
+                    configs["panels"].push({
+                        "address": document.getElementById(`address-${panelId}`).value,
+                        "max-retries": parseInt(document.getElementById(`max-retries-${panelId}`).value),
+                        "infinite-retry": document.getElementById(`infinite-retry-${panelId}`).checked,
+                        "enabled": document.getElementById(`enabled-${panelId}`).checked
+                    });
+                });
+                
+                configs["allow-retry"] = document.getElementById("allow-retry").checked
+
+                fetch('/api/plugin/settings/JezWebhook/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(configs)
+                })
+                .then(data => {
+                    alert('Saved!');
+                })
+                .catch(error => {
+                    alert('Fail: ' + error.message);
+                });
+            }
+        });
+    </script>
+</body>
